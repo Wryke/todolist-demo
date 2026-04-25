@@ -9,6 +9,9 @@ export default function App() {
   const [input, setInput] = useState('')
   const [filter, setFilter] = useState('all')
 
+  const [editingId, setEditingId] = useState(null)
+  const [editingText, setEditingText] = useState('')
+
   const addTodo = () => {
     const text = input.trim()
     if (!text) return
@@ -19,7 +22,32 @@ export default function App() {
   const toggleTodo = (id) =>
     setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
 
-  const deleteTodo = (id) => setTodos(todos.filter((t) => t.id !== id))
+  const deleteTodo = (id) => {
+    setTodos(todos.filter((t) => t.id !== id))
+  }
+
+  const startEditing = (todo) => {
+    setEditingId(todo.id)
+    setEditingText(todo.text)
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+    setEditingText('')
+  }
+
+  const saveEdit = (id) => {
+    const text = editingText.trim()
+
+    if (!text) {
+      deleteTodo(id)
+    } else {
+      setTodos(todos.map((t) => (t.id === id ? { ...t, text } : t)))
+    }
+
+    setEditingId(null)
+    setEditingText('')
+  }
 
   const visible = todos.filter((t) =>
     filter === 'active' ? !t.done : filter === 'completed' ? t.done : true,
@@ -74,14 +102,35 @@ export default function App() {
               key={todo.id}
               className="flex items-center gap-3 px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50"
             >
-              <button
-                onClick={() => toggleTodo(todo.id)}
-                className={`flex-1 text-left ${
-                  todo.done ? 'line-through text-slate-400' : 'text-slate-800'
-                }`}
-              >
-                {todo.text}
-              </button>
+              {editingId === todo.id ? (
+                <input
+                  type="text"
+                  value={editingText}
+                  onChange={(e) => setEditingText(e.target.value)}
+                  onBlur={() => saveEdit(todo.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveEdit(todo.id)
+                    } else if (e.key === 'Escape') {
+                      cancelEditing()
+                    }
+                  }}
+                  autoFocus
+                  className="flex-1 px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  aria-label="Edit todo"
+                />
+              ) : (
+                <button
+                  onClick={() => toggleTodo(todo.id)}
+                  onDoubleClick={() => startEditing(todo)}
+                  className={`flex-1 text-left ${
+                    todo.done ? 'line-through text-slate-400' : 'text-slate-800'
+                  }`}
+                >
+                  {todo.text}
+                </button>
+              )}
+
               <button
                 onClick={() => deleteTodo(todo.id)}
                 className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
@@ -91,6 +140,7 @@ export default function App() {
               </button>
             </li>
           ))}
+
           {visible.length === 0 && (
             <li className="text-center text-slate-400 py-4 text-sm">
               Nothing here.

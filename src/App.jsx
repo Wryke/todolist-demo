@@ -7,16 +7,22 @@ export default function App() {
     { id: 3, text: 'Write some code', done: false },
   ])
   const [input, setInput] = useState('')
+  const [dueDate, setDueDate] = useState('')
   const [filter, setFilter] = useState('all')
 
   const [editingId, setEditingId] = useState(null)
   const [editingText, setEditingText] = useState('')
+  const [editingDueDate, setEditingDueDate] = useState('')
 
   const addTodo = () => {
     const text = input.trim()
     if (!text) return
-    setTodos([...todos, { id: Date.now(), text, done: false }])
+    setTodos([
+      ...todos,
+      { id: Date.now(), text, done: false, dueDate: dueDate || undefined },
+    ])
     setInput('')
+    setDueDate('')
   }
 
   const toggleTodo = (id) =>
@@ -29,11 +35,13 @@ export default function App() {
   const startEditing = (todo) => {
     setEditingId(todo.id)
     setEditingText(todo.text)
+    setEditingDueDate(todo.dueDate || '')
   }
 
   const cancelEditing = () => {
     setEditingId(null)
     setEditingText('')
+    setEditingDueDate('')
   }
 
   const saveEdit = (id) => {
@@ -42,11 +50,18 @@ export default function App() {
     if (!text) {
       deleteTodo(id)
     } else {
-      setTodos(todos.map((t) => (t.id === id ? { ...t, text } : t)))
+      setTodos(
+        todos.map((t) =>
+          t.id === id
+            ? { ...t, text, dueDate: editingDueDate || undefined }
+            : t,
+        ),
+      )
     }
 
     setEditingId(null)
     setEditingText('')
+    setEditingDueDate('')
   }
 
   const visible = todos.filter((t) =>
@@ -67,7 +82,7 @@ export default function App() {
       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-6">
         <h1 className="text-2xl font-bold text-slate-800 mb-4">Todo List</h1>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-end">
           <input
             type="text"
             value={input}
@@ -75,6 +90,14 @@ export default function App() {
             onKeyDown={(e) => e.key === 'Enter' && addTodo()}
             placeholder="What needs doing?"
             className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="New todo description"
+          />
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full sm:w-44 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            aria-label="New todo due date"
           />
           <button
             onClick={addTodo}
@@ -100,44 +123,65 @@ export default function App() {
           {visible.map((todo) => (
             <li
               key={todo.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50"
+              className="flex flex-col gap-2 px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50"
             >
               {editingId === todo.id ? (
-                <input
-                  type="text"
-                  value={editingText}
-                  onChange={(e) => setEditingText(e.target.value)}
-                  onBlur={() => saveEdit(todo.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      saveEdit(todo.id)
-                    } else if (e.key === 'Escape') {
-                      cancelEditing()
-                    }
-                  }}
-                  autoFocus
-                  className="flex-1 px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  aria-label="Edit todo"
-                />
+                <div onBlur={() => saveEdit(todo.id)}>
+                  <input
+                    type="text"
+                    value={editingText}
+                    onChange={(e) => setEditingText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        saveEdit(todo.id)
+                      } else if (e.key === 'Escape') {
+                        cancelEditing()
+                      }
+                    }}
+                    autoFocus
+                    className="w-full px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-label="Edit todo text"
+                  />
+                  <input
+                    type="date"
+                    value={editingDueDate}
+                    onChange={(e) => setEditingDueDate(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        saveEdit(todo.id)
+                      } else if (e.key === 'Escape') {
+                        cancelEditing()
+                      }
+                    }}
+                    className="w-full px-2 py-1 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-label="Edit todo due date"
+                  />
+                </div>
               ) : (
-                <button
-                  onClick={() => toggleTodo(todo.id)}
-                  onDoubleClick={() => startEditing(todo)}
-                  className={`flex-1 text-left ${
-                    todo.done ? 'line-through text-slate-400' : 'text-slate-800'
-                  }`}
-                >
-                  {todo.text}
-                </button>
+                <div className="flex items-center justify-between gap-3 w-full">
+                  <button
+                    onClick={() => toggleTodo(todo.id)}
+                    onDoubleClick={() => startEditing(todo)}
+                    className={`flex-1 text-left ${
+                      todo.done ? 'line-through text-slate-400' : 'text-slate-800'
+                    }`}
+                  >
+                    <span>{todo.text}</span>
+                    {todo.dueDate ? (
+                      <time className="ml-2 text-xs text-slate-500">
+                        due {new Date(todo.dueDate).toLocaleDateString()}
+                      </time>
+                    ) : null}
+                  </button>
+                  <button
+                    onClick={() => deleteTodo(todo.id)}
+                    className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
+                    aria-label="Delete todo"
+                  >
+                    ×
+                  </button>
+                </div>
               )}
-
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
-                aria-label="Delete todo"
-              >
-                ×
-              </button>
             </li>
           ))}
 
